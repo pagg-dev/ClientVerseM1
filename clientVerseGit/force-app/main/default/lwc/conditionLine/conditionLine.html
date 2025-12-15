@@ -1,0 +1,88 @@
+<template>
+    <div class="slds-grid">
+        <span class="slds-form-element__label slds-p-top--large slds-p-right--xx-small condition-number">
+            {conditionIndex}
+        </span>
+        <div class="slds-col slds-p-around_none slds-size--4-of-12 slds-p-left--none slds-m-left--xx-small">
+            <c-flow-combobox
+                    name="fieldName"
+                    label="Resource"
+                    required
+                    mode="fields"
+                    object-type={_objectType}
+                    value={fieldName}
+                    disabled={disabled}
+                    onvaluechanged={handleFieldChanged}
+            >
+            </c-flow-combobox>
+        </div>
+        <div class="slds-col slds-size--3-of-12 slds-p-around_none  slds-align-top">
+            <lightning-combobox
+                    name="operation"
+                    label="Operation"
+                    placeholder="Operation"
+                    variant="label-stacked"
+                    options={availableOperations}
+                    value={operation}
+                    disabled={isDisabled}
+                    onchange={handleConditionChanged}
+            ></lightning-combobox>
+        </div>
+
+        <div class="slds-col slds-size--4-of-12 slds-p-around_none slds-align-top" >
+           <template if:true = {isChildField}>
+                <lightning-combobox
+                    name="childRelationship"
+                    label="Select Child Relationship"
+                    options={childRelationships}
+                    value={selectedChildRelationship}
+                    placeholder="Select a child relationship"
+                    onchange={handleChildRelationshipChange}>
+                </lightning-combobox>
+            </template>
+
+            <template if:true={hasChildValue}>
+                <lightning-combobox
+                    name="childField"
+                    label="Select Field from Child"
+                    options={childFields}
+                    value={selectedChildField}
+                    placeholder="Select a field"
+                    onchange={handleChildFieldChange}>
+                </lightning-combobox>
+            </template>
+
+            <template if:true={hasValue}>
+                <lightning-input
+                    name="value"
+                    label="Child Value"
+                    type={inputType}
+                    value={childValue}
+                    disabled={disabled}
+                    onblur={handleConditionChanged}
+                ></lightning-input>
+            </template>
+
+            <template if:false={isChildField}>
+                <lightning-input
+                    name="value"
+                    label="Value"
+                    type={inputType}
+                    value={value}
+                    disabled={disabled}
+                    onblur={handleConditionChanged}
+                ></lightning-input>
+            </template>
+        </div>
+        <div class="slds-col slds-size--1-of-12 slds-align-bottom slds-m-bottom--x-small slds-p-left--none">
+            <lightning-button-icon
+                    disabled={preventRemoval}
+                    icon-name="utility:delete"
+                    alternative-text="Delete"
+                    onclick={handleConditionRemove}
+            >
+            </lightning-button-icon>
+        </div>
+    </div>
+
+</template>

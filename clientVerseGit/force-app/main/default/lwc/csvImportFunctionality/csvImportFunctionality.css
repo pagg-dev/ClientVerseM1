@@ -1,0 +1,33 @@
+.slds-modal-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+}
+
+.slds-modal__content {
+    max-height: 70vh !important;
+    overflow-y: auto;
+}
+
+.custom-modal-size {
+    width: 90vw;
+    max-width: 950px;
+}
+
+
+/* tbody tr {
+    pointer-events: none !important;
+} */
+
+.csv_duplicate_header_container{
+    display: flex;
+    justify-content: space-between;
+}
+
+.incorrect_message{
+    color: red;
+    text-align: center;
+}

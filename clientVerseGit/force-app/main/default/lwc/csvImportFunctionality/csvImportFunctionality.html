@@ -1,0 +1,233 @@
+<template>
+<!-- <template if:false={mergePanel}> -->
+    <lightning-quick-action-panel header="CSV List Member Import">
+        
+        <!-- Panel Body -->
+        <div class="slds-p-around_medium">
+            <!-- File Upload -->
+            <template if:false={rows.length}>
+                <lightning-input type="file"
+                                 label="Upload CSV"
+                                 accept=".csv"
+                                 onchange={handleFileUpload}>
+                </lightning-input>
+            </template>
+
+            <template if:true={rows.length}>
+
+                <!-- STEP 1: Exact + Fuzzy -->
+                <template if:true={showExact}>
+                    <template if:true={exactRowsLength} >
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Exact Matches ({exactRowsLength})
+                        </h2>
+
+                        <lightning-datatable
+                            key-field="id"
+                            data={exactRows}
+                            columns={columns}
+                            draft-values={draftValues}
+                            onsave={handleSaveDraft}>
+                        </lightning-datatable>
+                    </template>
+                    <template if:false={exactRowsLength}>
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Exact Matches
+                        </h2>
+                        No Records Available
+                    </template>
+                </template>
+
+
+                <!-- STEP 2: Fuzzy Match -->
+                <template if:true={showFuzzy}>
+                    <template if:true={fuzzyRowsLength} >
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Fuzzy Matches ({fuzzyRowsLength})
+                        </h2>
+
+                        <lightning-datatable
+                            key-field="id"
+                            data={fuzzyRows}
+                            columns={columns}
+                            draft-values={draftValues}
+                            onsave={handleSaveDraft}>
+                        </lightning-datatable>
+                    </template>
+                    <template if:false={fuzzyRowsLength}>
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Fuzzy Matches
+                        </h2>
+
+                        No Records Available
+                    </template>
+                </template>
+
+                <!-- STEP 3: Duplicate Records -->
+                <template if:true={showCsvDuplicate}>
+                    <template if:true={duplicateRowsLength} >
+                    <span class="csv_duplicate_header_container">
+                    <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                        Duplicate Emails in CSV ({duplicateRowsLength})
+                    </h2>
+
+
+
+                    <lightning-button variant="brand"
+                              class="slds-m-bottom_x-small" label="Merge" title="Merge" onclick={handleMerge} if:false={mergePanel}>
+                    </lightning-button>
+                    </span>
+                    <template if:false={mergePanel}>
+                        <!-- incorect selection -->
+                            <p if:true={isIncorrectSelection} class="incorrect_message slds-m-bottom_x-small">Selected Rows aren't duplicate</p>
+                        
+                        <lightning-datatable
+                            key-field="id"
+                            data={duplicateRows}
+                            columns={columns}
+                            draft-values={draftValues}
+                            onsave={handleSaveDraft}
+                            onrowaction={handleRowAction}
+                            onrowselection={handleSelectedRows}
+                            selectedrows={selectedRowsData}
+                            >
+                        </lightning-datatable>
+                    </template>
+                    <template if:true={showMergePanel}>
+                        
+                        <!-- Correct Selection -->
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Selected Rows for Merging
+                        </h2>
+    
+                        <lightning-datatable
+                            key-field="id"
+                            data={selectedRowsData}
+                            columns={mergeColumns}
+                            hide-checkbox-column
+                            >
+                        </lightning-datatable>
+
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small slds-m-top_x-small">
+                            Final Merged Output
+                        </h2>
+                        <lightning-datatable
+                                data-id="finalMergeTable"
+                                key-field="id"
+                                data={finalMergeRow}
+                                columns={finalMergeColumns}
+                                oncellchange={handleCellChange}
+                                show-row-number-column={showRowNumber}
+                                hide-checkbox-column>
+                        </lightning-datatable>
+                        
+                    </template>
+
+                    </template>
+                    <template if:false={duplicateRowsLength}>
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Duplicate Emails in CSV
+                        </h2>
+                        No Records Available
+                    </template>
+
+
+                </template>
+
+                <!-- STEP 5: Already Linked Records -->
+                <template if:true={showAlreadyLinked}>
+                    <template if:true={alreadyLinkedRowsLength} >
+                    <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                        Duplicate Emails Already Linked ({alreadyLinkedRowsLength})
+                    </h2>
+
+                    <lightning-datatable
+                        key-field="id"
+                        data={alreadyLinkedRows}
+                        columns={columns}
+                        draft-values={draftValues}
+                        onsave={handleSaveDraft}
+                        onrowaction={handleRowAction}>
+                    </lightning-datatable>
+
+                    </template>
+                    <template if:false={alreadyLinkedRowsLength}>
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            Duplicate Emails Already Linked ({alreadyLinkedRowsLength})
+                        </h2>
+
+                        No Records Available
+                    </template>
+                </template>
+
+
+                <!-- STEP 5: No Matches -->
+                <template if:true={showNone}>
+                    <template if:true={showNoneLength} >
+                    <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                        No Match Found in Salesforce ({showNoneLength})
+                    </h2>
+
+                    <lightning-datatable
+                        key-field="id"
+                        data={noneMatchRows}
+                        columns={columns}
+                        draft-values={draftValues}
+                        onsave={handleSaveDraft}>
+                    </lightning-datatable>
+                    </template>
+                    <template if:false={showNoneLength}>
+                        <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                            No Match Found in Salesforce
+                        </h2>
+
+                        No Records Available
+                    </template>
+                </template>
+
+                <!-- Navigation Buttons -->
+                <div class="slds-m-top_medium">
+                    <lightning-button if:false={showMergePanel}
+                        label="Previous"
+                        onclick={handlePrevious}
+                        disabled={isFirstStep}>
+                    </lightning-button>
+
+                    <lightning-button if:false={showMergePanel}
+                        class="slds-m-left_small"
+                        label="Next"
+                        onclick={handleNext}
+                        disabled={isLastStep}>
+                    </lightning-button>
+
+                    <lightning-button if:true={showMergePanel}
+                        class="slds-m-left_small"
+                        label="Merge"
+                        onclick={handleRowMerge}
+                        disabled={isDataNotFilled}>
+                    </lightning-button>
+                </div>
+
+            </template>
+        </div>
+
+        <!-- Panel Footer -->
+        <div slot="footer">
+            <lightning-button variant="neutral"
+                              label="Cancel"
+                              onclick={handleClose}>
+            </lightning-button>
+            <lightning-button variant="brand"
+                              class="slds-m-left_x-small"
+                              label="Import"
+                              onclick={handleImport}
+                              disabled={isNotLastStep}>
+            </lightning-button>
+
+            
+        </div>
+
+    </lightning-quick-action-panel>
+
+
+</template>

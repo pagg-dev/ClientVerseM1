@@ -1,0 +1,236 @@
+<template>
+    <template if:true={errorMessage}>
+        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme--error" role="alert">
+            {errorMessage}
+        </div>
+    </template>
+    <lightning-card title={header} if:false={errorMessage} class="slds-p-around--none">
+        <div if:false ={tableData} class="slds-grid slds-gutters slds-p-left--small slds-p-right--small">
+            <div class="slds-col slds-size--3-of-12">
+                <lightning-combobox
+                        class="slds-p-left--none"
+                        name="objectType"
+                        label="Object Type"
+                        placeholder="Select Object Type"
+                        variant="label-stacked"
+                        value={_objectType}
+                        options={_objectTypes}
+                        disabled={disableObjectTypeSelection}
+                        onchange={handleObjectTypeChange}
+                ></lightning-combobox>
+                <c-field-selector if:true={_objectType}
+                                  object-type={_objectType}
+                                  field-selector-label={labels.availableFields}
+                                  field-selector-style={fieldPickerStyle}
+                                  onfieldselected={handleFieldSelected}
+                                  onaddall={handleAddAll}
+                                  onremoveall={handleRemoveAll}
+                ></c-field-selector>
+            </div>
+            <div class="slds-col slds-size--9-of-12 slds-p-left--small" style="position: relative">
+                <div class="field-picker-container"
+
+                >
+                    <div class="slds-p-left--xx-small">
+                            <c-selected-fields selected-fields={_selectedFields}
+                                               choose-fields-label={labels.chooseFields}
+                                               remove-all-label={labels.buttonRemoveAll}
+                                               onremoveall={handleRemoveAll}
+                                               onremovefield={handleFieldRemove}
+                                               onrenderfinished={calculateFieldPickerStyle}
+                            >
+                            </c-selected-fields>
+                    </div>
+                    <div style={conditionBuilderStyle}>
+                        <span class="slds-p-left--xx-small">
+                            {labels.generatedQuery}
+                        </span>
+                        <c-condition-builder
+                                class="slds-p-left--xx-small"
+                                object-type={_objectType}
+                                fields={fieldOptions}
+                                where-clause={whereClause}
+                                disabled={isRHSDisabled}
+                                is-disabled={conditionBuilderDisabled}
+                                onconditionschanged={handleConditionChanged}
+                                onrenderfinished={calculateFieldPickerStyle}
+                        ></c-condition-builder>
+                        <div class="slds-grid slds-wrap slds-p-left--xx-small">
+                            <div class="slds-col slds-size--3-of-12  slds-p-around_none">
+                                <lightning-input
+                                        name="limit"
+                                        type="Number"
+                                        label="Limit"
+                                        value={limit}
+                                        disabled={isRHSDisabled}
+                                        onchange={handleValueChanged}
+                                >
+                                </lightning-input>
+                            </div>
+                            <div class="slds-col slds-size--5-of-12 slds-p-around_none">
+                                <lightning-combobox
+                                        name="orderByField"
+                                        label="Order By"
+                                        placeholder=""
+                                        variant="label-stacked"
+                                        value={orderByField}
+                                        disabled={isRHSDisabled}
+                                        options={fieldOptionsWithNone}
+                                        onchange={handleValueChanged}
+                                ></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size--3-of-12 slds-p-around_none">
+                                <lightning-combobox
+                                        name="orderByDirection"
+                                        label="Direction"
+                                        placeholder=""
+                                        variant="label-stacked"
+                                        value={orderByDirection}
+                                        options={orderByDirections}
+                                        disabled={isRHSDisabled}
+                                        onchange={handleValueChanged}
+                                ></lightning-combobox>
+                            </div>
+                        </div>
+                    </div>
+                    <lightning-textarea name="queryString" label="Query Preview" value={_queryString}
+                                        onblur={handleSoqlChange}
+                    ></lightning-textarea>
+
+                    <div style = "margin-top: 20px;">
+                        <lightning-button
+                            if:true={queryReady}
+                            variant="brand"
+                            label="Run Query"
+                            onclick={handleRunQuery}
+                        ></lightning-button>
+                    </div>
+              
+                </div>
+            </div>
+        </div>
+
+        <div if:true={tableData} class="slds-p-around_medium">
+
+            <lightning-card title="Executed SOQL Query" class="slds-m-bottom_medium">
+
+                <div class="slds-p-around_medium">
+
+                    <p class="slds-text-title_bold">SOQL Query:</p>
+
+                    <lightning-textarea 
+                        value={_queryString}
+                        disabled
+                        class="slds-m-bottom_small">
+                    </lightning-textarea>
+
+                    <p class="slds-text-color_weak">
+                        If you want to return and edit this query, press the button below.
+                    </p>
+
+                </div>
+
+            </lightning-card>
+
+            <div style ="display:flex">
+                <!-- BACK BUTTON
+                <div style = "margin: 0px 30px 20px 0px;">
+                    <lightning-button
+                        label="Back To Query Builder"
+                        variant="neutral"
+                        onclick={handleGoBack}
+                        class="slds-m-bottom_medium"
+                    ></lightning-button>
+                </div> -->
+
+                <!-- Re-run BUTTON -->
+                <div style = "margin: 0px 30px 20px 0px;">
+                    <lightning-button
+                        label="Back To Query Builder"
+                        variant="neutral"
+                        onclick={handleReRun}
+                        class="slds-m-bottom_medium"
+                    ></lightning-button>
+                </div> 
+
+                <div style = "margin: 0px 30px 20px 0px;">
+                    <lightning-button
+                        label="Save Query"
+                        variant="brand"
+                        class="slds-m-bottom_medium"
+                        onclick={handleSaveQuery}
+                        disabled={NoData}>
+                    </lightning-button>
+                </div>
+            </div>  
+
+            <div>
+                <div if:false={NoData}>
+                    <lightning-datatable
+                        key-field="Id"
+                        data={tableData}
+                        columns={tableColumns}
+                        hide-checkbox-column
+                        class="slds-m-top_medium"
+                    ></lightning-datatable>
+                </div>
+                <div if:true={NoData}>
+                    <div class="slds-text-align_center slds-m-top_medium slds-text-color_weak">
+                        No record found for this SOQL query.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </lightning-card>
+
+    <template if:true={showSaveModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <header class="slds-modal__header">
+                    <h2 class="slds-modal__title">Save Query & Schedule</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <lightning-input 
+                        label="Scheduled Job Name"
+                        value={jobName}
+                        onchange={handleJobNameChange}>
+                    </lightning-input>
+
+                    <lightning-combobox
+                        class="slds-m-top_medium"
+                        label="Schedule Frequency"
+                        value={modalFrequency}
+                        options={updateFrequencyOptions}
+                        onchange={handleModalFrequencyChange}>
+                    </lightning-combobox>
+
+                </div>
+
+                <footer class="slds-modal__footer">
+
+                    <lightning-button 
+                        label="Cancel" 
+                        onclick={closeSaveModal}>
+                    </lightning-button>
+
+                    <lightning-button 
+                        variant="brand"
+                        label="Save"
+                        onclick={handleModalSave}
+                        class="slds-m-left_small">
+                    </lightning-button>
+
+                </footer>
+
+            </div>
+        </section>
+
+        <!-- BACKDROP -->
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    
+</template>
