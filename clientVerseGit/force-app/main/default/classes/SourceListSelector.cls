@@ -1,90 +1,242 @@
+/**
+ * @description
+ * Selector class for Source_List__c records.
+ * Provides reusable query methods for source/destination
+ */
 public with sharing class SourceListSelector extends fflib_SObjectSelector {
+	/**
+	 * @description
+	 * Default constructor.
+	 */
+	public SourceListSelector() {
+		super();
+		setDataAccess(DataAccess.USER_MODE);
+	}
 
-    public SourceListSelector() {
-        super();
-    }
+	/**
+	 * @description
+	 * Returns the default field set for Source_List__c queries.
+	 *
+	 * @return
+	 * List of Source_List__c fields.
+	 */
+	public List<Schema.SObjectField> getSObjectFieldList() {
+		return new List<Schema.SObjectField>{
+			Source_List__c.Id,
+			Source_List__c.Source_List__c,
+			Source_List__c.Destination_List__c,
+			Source_List__c.Source_Campaign__c,
+			Source_List__c.Destination_Campaign__c,
+			Source_List__c.Source_List_Type__c
+		};
+	}
 
-    public List<Schema.SObjectField> getSObjectFieldList() {
-        return new List<Schema.SObjectField>{
-            Source_List__c.Id,
-            Source_List__c.Source_List__c,
-            Source_List__c.Destination_List__c,
-            Source_List__c.Source_Campaign__c,
-            Source_List__c.Destination_Campaign__c,
-            Source_List__c.Source_List_Type__c
-        };
-    }
+	/**
+	 * @description
+	 * Returns the SObject type handled by this selector.
+	 *
+	 * @return
+	 * Source_List__c SObjectType.
+	 */
+	public Schema.SObjectType getSObjectType() {
+		return Source_List__c.SObjectType;
+	}
 
-    public Schema.SObjectType getSObjectType() {
-        return Source_List__c.SObjectType;
-    }
+	/**
+	 * @description
+	 * Selects Source_List__c records by Id.
+	 *
+	 * @param ids
+	 * Set of Source_List__c record Ids.
+	 *
+	 * @return
+	 * List of matching Source_List__c records.
+	 */
+	public List<Source_List__c> selectByIds(Set<Id> ids) {
+		if (ids == null || ids.isEmpty()) {
+			return new List<Source_List__c>();
+		}
 
-    public List<Source_List__c> selectByIds(Set<Id> ids) {
-        return (List<Source_List__c>) selectSObjectsById(ids);
-    }
+		return (List<Source_List__c>) selectSObjectsById(ids);
+	}
 
-    public List<Source_List__c> selectByDestinationListIds(Set<Id> destinationIds) {
-        if (destinationIds == null || destinationIds.isEmpty()) {
-            return new List<Source_List__c>();
-        }
+	/**
+	 * @description
+	 * Selects mappings whose destination list is in the given set.
+	 *
+	 * @param destinationIds
+	 * Destination List__c Ids.
+	 *
+	 * @return
+	 * List of Source_List__c records.
+	 */
+	public List<Source_List__c> selectByDestinationListIds(Set<Id> destinationIds) {
+		if (destinationIds == null || destinationIds.isEmpty()) {
+			return new List<Source_List__c>();
+		}
 
-        fflib_QueryFactory qf = newQueryFactory();
-        qf.selectFields(getSObjectFieldList());
-        qf.setCondition('Destination_List__c IN :destinationIds AND Source_List__c != null');
+		fflib_QueryFactory queryFactory = newQueryFactory();
+		configureBaseQuery(queryFactory);
+		queryFactory.setCondition(
+			'Destination_List__c IN :destinationIds ' + 'AND Source_List__c != null'
+		);
 
-        return (List<Source_List__c>) Database.query(qf.toSOQL());
-    }
+		return executeQuery(queryFactory);
+	}
 
-    public List<Source_List__c> selectSyncingBySourceListIds(Set<Id> sourceIds) {
-        if (sourceIds == null || sourceIds.isEmpty()) {
-            return new List<Source_List__c>();
-        }
+	/**
+	 * @description
+	 * Selects syncing Source_List__c mappings for given source lists.
+	 *
+	 * @param sourceIds
+	 * Source List__c Ids.
+	 *
+	 * @return
+	 * List of syncing Source_List__c records.
+	 */
+	public List<Source_List__c> selectSyncingBySourceListIds(Set<Id> sourceIds) {
+		if (sourceIds == null || sourceIds.isEmpty()) {
+			return new List<Source_List__c>();
+		}
 
-        fflib_QueryFactory qf = newQueryFactory();
-        qf.selectFields(getSObjectFieldList());
-        qf.setCondition('Sync__c = TRUE AND Source_List__c IN :sourceIds');
+		fflib_QueryFactory queryFactory = newQueryFactory();
+		configureBaseQuery(queryFactory);
+		queryFactory.setCondition('Sync__c = TRUE AND Source_List__c IN :sourceIds');
 
-        return (List<Source_List__c>) Database.query(qf.toSOQL());
-    }
+		return executeQuery(queryFactory);
+	}
 
-    public List<Source_List__c> selectEdgesBounded(Set<Id> startListIds, Integer maxDepth) {
-        if (startListIds == null || startListIds.isEmpty() || maxDepth == null || maxDepth <= 0) {
-            return new List<Source_List__c>();
-        }
+	/**
+	 * @description
+	 * Traverses source list edges up to a maximum depth.
+	 *
+	 * @param startListIds
+	 * Starting List__c Ids.
+	 *
+	 * @param maxDepth
+	 * Maximum traversal depth.
+	 *
+	 * @return
+	 * List of Source_List__c edges discovered.
+	 */
+	public List<Source_List__c> selectEdgesBounded(
+		Set<Id> startListIds,
+		Integer maxDepth
+	) {
+		if (
+			startListIds == null ||
+			startListIds.isEmpty() ||
+			maxDepth == null ||
+			maxDepth <= 0
+		) {
+			return new List<Source_List__c>();
+		}
 
-        List<Source_List__c> result = new List<Source_List__c>();
+		List<Source_List__c> results = new List<Source_List__c>();
+		Set<Id> frontier = new Set<Id>(startListIds);
+		Set<Id> visited = new Set<Id>(frontier);
 
-        // BFS state
-        Set<Id> frontier = new Set<Id>(startListIds);
-        Set<Id> visited = new Set<Id>(frontier);
+		for (Integer depth = 1; depth <= maxDepth; depth++) {
+			if (frontier.isEmpty()) {
+				break;
+			}
 
-        for (Integer depth = 1; depth <= maxDepth; depth++) {
+			List<Source_List__c> edges = queryEdgesFromFrontier(frontier);
 
-            if (frontier.isEmpty()) break;
+			if (edges.isEmpty()) {
+				break;
+			}
 
-            fflib_QueryFactory qf = newQueryFactory();
-            qf.selectFields(getSObjectFieldList());
-            qf.setCondition('Source_List__c IN :frontier AND Destination_List__c != null');
+			results.addAll(edges);
+			frontier = buildNextFrontier(edges, visited);
+			visited.addAll(frontier);
+		}
 
-            List<Source_List__c> edges =
-                (List<Source_List__c>) Database.query(qf.toSOQL());
+		return results;
+	}
 
-            if (edges.isEmpty()) break;
+	/* =========================
+       Helper Methods
+       ========================= */
 
-            result.addAll(edges);
+	/**
+	 * @description
+	 * Configures base query settings.
+	 *
+	 * @param queryFactory
+	 * QueryFactory instance.
+	 */
+	private void configureBaseQuery(fflib_QueryFactory queryFactory) {
+		queryFactory.selectFields(getSObjectFieldList());
+	}
 
-            // prepare next frontier
-            Set<Id> nextFrontier = new Set<Id>();
-            for (Source_List__c e : edges) {
-                if (e.Destination_List__c != null && !visited.contains(e.Destination_List__c)) {
-                    nextFrontier.add(e.Destination_List__c);
-                }
-            }
+	/**
+	 * @description
+	 * Executes a QueryFactory query.
+	 *
+	 * @param queryFactory
+	 * QueryFactory instance.
+	 *
+	 * @return
+	 * Query results as Source_List__c records.
+	 */
+	private static List<Source_List__c> executeQuery(fflib_QueryFactory queryFactory) {
+		return (List<Source_List__c>) Database.query(
+			queryFactory.toSOQL() + ' WITH USER_MODE'
+		);
+	}
 
-            visited.addAll(frontier);
-            frontier = nextFrontier;
-        }
+	/**
+	 * @description
+	 * Queries outgoing edges from the current frontier.
+	 *
+	 * @param frontier
+	 * Current traversal frontier.
+	 *
+	 * @return
+	 * List of Source_List__c edges.
+	 */
+	private List<Source_List__c> queryEdgesFromFrontier(Set<Id> frontier) {
+		fflib_QueryFactory queryFactory = newQueryFactory();
+		configureBaseQuery(queryFactory);
+		queryFactory.setCondition(
+			'Source_List__c IN :frontier ' + 'AND Destination_List__c != null'
+		);
 
-        return result;
-    }
+		return executeQuery(queryFactory);
+	}
+
+	/**
+	 * @description
+	 * Builds the next traversal frontier from discovered edges.
+	 *
+	 * @param edges
+	 * Discovered Source_List__c edges.
+	 *
+	 * @param visited
+	 * Already visited List__c Ids.
+	 *
+	 * @return
+	 * Next frontier List__c Ids.
+	 */
+	private static Set<Id> buildNextFrontier(
+		List<Source_List__c> edges,
+		Set<Id> visited
+	) {
+		Set<Id> nextFrontier = new Set<Id>();
+
+		for (Source_List__c edge : edges) {
+			if (edge == null) {
+				continue;
+			}
+
+			Id destinationId = edge.Destination_List__c;
+
+			if (destinationId != null && !visited.contains(destinationId)) {
+				nextFrontier.add(destinationId);
+			}
+		}
+
+		return nextFrontier;
+	}
 }
