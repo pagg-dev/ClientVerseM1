@@ -60,7 +60,6 @@ public with sharing class NotificationDispatcherInvocable {
 	)
 	public static List<Result> send(List<RequestInput> inputs) {
 		List<Result> results = new List<Result>();
-
 		Set<Id> requestIds = collectRequestIds(inputs);
 
 		if (requestIds.isEmpty()) {
@@ -80,7 +79,6 @@ public with sharing class NotificationDispatcherInvocable {
 
 			try {
 				processSingleRequest(requestId, requestMap, templateMap);
-
 				result.success = true;
 			} catch (Exception ex) {
 				result.errorMessage = ex.getMessage();
@@ -119,25 +117,87 @@ public with sharing class NotificationDispatcherInvocable {
 		Notification_Template__c template,
 		Map<String, Object> payload
 	) {
-		String subject = mergeTokens(template.Subject__c, payload);
-
 		if (request.Channel__c == 'Email') {
-			sendEmailNotification(request, subject, payload);
+			sendEmailNotification(request, template, payload);
 			return;
 		}
 
 		if (request.Channel__c == 'In App') {
-			sendInAppNotification(request, subject, payload);
+			sendInAppNotification(request, template, payload);
 			return;
 		}
 
 		throw new NotificationException('Unsupported channel: ' + request.Channel__c);
 	}
 
+	private static void sendEmailNotification(
+		Notification_Request__c request,
+		Notification_Template__c template,
+		Map<String, Object> payload
+	) {
+		String subject = mergeTokens(template.Subject__c, payload);
+		String body = mergeTokens(template.Body__c, payload);
+
+		Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+
+		email.setSaveAsActivity(false);
+		email.setSubject(subject);
+		email.setHtmlBody(body);
+
+		if (request.Recipient_Type__c == 'Email') {
+			if (String.isBlank(request.Email__c)) {
+				throw new NotificationException(
+					'Email__c is required for Email recipient.'
+				);
+			}
+
+			email.setToAddresses(new List<String>{ request.Email__c });
+		} else if (
+			request.Recipient_Type__c == 'User' ||
+			request.Recipient_Type__c == 'Contact'
+		) {
+			if (request.Recipient_Id__c == null) {
+				throw new NotificationException('Recipient_Id__c is required.');
+			}
+
+			email.setTargetObjectId(request.Recipient_Id__c);
+		} else {
+			throw new NotificationException(
+				'Unsupported Email recipient type: ' + request.Recipient_Type__c
+			);
+		}
+
+		Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ email });
+	}
+
+	private static void sendInAppNotification(
+		Notification_Request__c request,
+		Notification_Template__c template,
+		Map<String, Object> payload
+	) {
+		if (request.Recipient_Type__c != 'User' || request.Recipient_Id__c == null) {
+			throw new NotificationException(
+				'In-App notifications require a User recipient.'
+			);
+		}
+
+		String title = mergeTokens(template.Subject__c, payload);
+		String body = mergeTokens(template.Short_Message__c, payload);
+
+		Messaging.CustomNotification notification = new Messaging.CustomNotification();
+
+		notification.setTitle(title);
+		notification.setBody(body);
+		notification.setNotificationTypeId(getInAppTypeId());
+		notification.setTargetId(request.Context_Record_Id__c);
+
+		notification.send(new Set<String>{ request.Recipient_Id__c });
+	}
+
 	private static Set<Id> collectRequestIds(List<RequestInput> inputs) {
 		Set<Id> ids = new Set<Id>();
 
-		if (inputs == null || inputs.isEmpty()) {
+		if (inputs == null) {
 			return ids;
 		}
 
@@ -159,6 +219,7 @@ public with sharing class NotificationDispatcherInvocable {
 					Template_Mappings__c,
 					Recipient_Id__c,
 					Recipient_Type__c,
+					Email__c,
 					Channel__c,
 					Context_Record_Id__c
 				FROM Notification_Request__c
@@ -228,47 +289,6 @@ public with sharing class NotificationDispatcherInvocable {
 		}
 
 		return result;
-	}
-
-	private static void sendEmailNotification(
-		Notification_Request__c request,
-		String subject,
-		Map<String, Object> payload
-	) {
-		String body = mergeTokens(getTemplateBody(request, true), payload);
-
-		Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
-
-		email.setTargetObjectId(request.Recipient_Id__c);
-		email.setSaveAsActivity(false);
-		email.setSubject(subject);
-		email.setHtmlBody(body);
-
-		Messaging.sendEmail(new List<Messaging.SingleEmailMessage>{ email });
-	}
-
-	private static void sendInAppNotification(
-		Notification_Request__c request,
-		String title,
-		Map<String, Object> payload
-	) {
-		String body = mergeTokens(getTemplateBody(request, false), payload);
-
-		Messaging.CustomNotification notification = new Messaging.CustomNotification();
-
-		notification.setTitle(title);
-		notification.setBody(body);
-		notification.setNotificationTypeId(getInAppTypeId());
-		notification.setTargetId(request.Context_Record_Id__c);
-
-		notification.send(new Set<String>{ request.Recipient_Id__c });
-	}
-
-	private static String getTemplateBody(
-		Notification_Request__c request,
-		Boolean isEmail
-	) {
-		return isEmail ? request.Template_Key__c == null ? null : null : null;
 	}
 
 	private static Id getInAppTypeId() {

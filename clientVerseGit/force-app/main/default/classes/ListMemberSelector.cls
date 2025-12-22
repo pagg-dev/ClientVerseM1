@@ -60,7 +60,7 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 		queryFactory.selectFields(getSObjectFieldList());
 		queryFactory.setCondition('List__c IN :listIds AND Contact__c != null');
 
-		return executeQuery(queryFactory);
+		return (List<List_Member__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
@@ -89,7 +89,7 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 			)
 		);
 
-		return Database.getQueryLocator(queryFactory.toSOQL() + ' WITH USER_MODE');
+		return Database.getQueryLocator(queryFactory.toSOQL());
 	}
 
 	/**
@@ -141,7 +141,7 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 
 		queryFactory.setLimit(limitSize);
 
-		return executeQuery(queryFactory);
+		return (List<List_Member__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
@@ -170,7 +170,7 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 
 		queryFactory.setCondition('List__c = :listId AND Contact__c IN :contactIds');
 
-		return executeQuery(queryFactory);
+		return (List<List_Member__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
@@ -207,7 +207,7 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 
 		queryFactory.setCondition('List__c IN :listIds AND Contact__c IN :contactIds');
 
-		return executeQuery(queryFactory);
+		return (List<List_Member__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
@@ -276,7 +276,9 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 
 		queryFactory.setCondition('List__c IN :listIds AND Contact__c IN :contactIds');
 
-		List<List_Member__c> members = executeQuery(queryFactory);
+		List<List_Member__c> members = (List<List_Member__c>) Database.query(
+			queryFactory.toSOQL()
+		);
 
 		for (List_Member__c member : members) {
 			if (member.List__c == null || member.Contact__c == null) {
@@ -291,10 +293,6 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 		}
 
 		return result;
-	}
-
-	private static List<List_Member__c> executeQuery(fflib_QueryFactory queryFactory) {
-		return (List<List_Member__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	private static String buildPagingCondition(

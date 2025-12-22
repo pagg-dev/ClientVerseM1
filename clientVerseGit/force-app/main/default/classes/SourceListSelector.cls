@@ -81,7 +81,7 @@ public with sharing class SourceListSelector extends fflib_SObjectSelector {
 			'Destination_List__c IN :destinationIds ' + 'AND Source_List__c != null'
 		);
 
-		return executeQuery(queryFactory);
+		return (List<Source_List__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
@@ -103,7 +103,7 @@ public with sharing class SourceListSelector extends fflib_SObjectSelector {
 		configureBaseQuery(queryFactory);
 		queryFactory.setCondition('Sync__c = TRUE AND Source_List__c IN :sourceIds');
 
-		return executeQuery(queryFactory);
+		return (List<Source_List__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
@@ -172,22 +172,6 @@ public with sharing class SourceListSelector extends fflib_SObjectSelector {
 
 	/**
 	 * @description
-	 * Executes a QueryFactory query.
-	 *
-	 * @param queryFactory
-	 * QueryFactory instance.
-	 *
-	 * @return
-	 * Query results as Source_List__c records.
-	 */
-	private static List<Source_List__c> executeQuery(fflib_QueryFactory queryFactory) {
-		return (List<Source_List__c>) Database.query(
-			queryFactory.toSOQL() + ' WITH USER_MODE'
-		);
-	}
-
-	/**
-	 * @description
 	 * Queries outgoing edges from the current frontier.
 	 *
 	 * @param frontier
@@ -203,7 +187,7 @@ public with sharing class SourceListSelector extends fflib_SObjectSelector {
 			'Source_List__c IN :frontier ' + 'AND Destination_List__c != null'
 		);
 
-		return executeQuery(queryFactory);
+		return (List<Source_List__c>) Database.query(queryFactory.toSOQL());
 	}
 
 	/**
