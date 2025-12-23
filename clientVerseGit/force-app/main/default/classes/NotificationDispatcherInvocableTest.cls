@@ -1,7 +1,7 @@
 @IsTest
-@SuppressWarnings('PMD')
+@SuppressWarnings('PMD.ApexUnitTestClassShouldHaveRunAs')
 private class NotificationDispatcherInvocableTest {
-	@testSetup
+	@TestSetup
 	static void setupData() {
 		// Active template
 		insert new Notification_Template__c(
