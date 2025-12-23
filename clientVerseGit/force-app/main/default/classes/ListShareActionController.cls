@@ -21,19 +21,20 @@ public with sharing class ListShareActionController {
 
 	/**
 	 * @description
-	 * Persists a List_Share__c record, generates an encrypted
+	 * Persists a View_Share_Config__c record, generates an encrypted
 	 * access token, builds the share URL, and triggers
 	 * email and in-app notifications.
 	 *
 	 * @param listShare
-	 * List_Share__c record to persist.
+	 * View_Share_Config__c record to persist.
 	 *
 	 * @return
-	 * Refreshed List_Share__c record.
+	 * Refreshed View_Share_Config__c record.
 	 */
 	@AuraEnabled(cacheable=false)
-	public static List_Share__c generateToken(List_Share__c listShare) {
+	public static View_Share_Config__c generateToken(View_Share_Config__c listShare) {
 		validateInput(listShare);
+		listShare.Type__c = 'List Share';
 
 		Database.insert(listShare, AccessLevel.USER_MODE);
 
@@ -45,7 +46,7 @@ public with sharing class ListShareActionController {
 
 		enqueueNotifications(listShare, shareUrl);
 
-		return fetchListShare(listShare.Id);
+		return new ViewShareConfigSelector().selectListSharesByIds(listShare.Id);
 	}
 
 	/**
@@ -53,7 +54,7 @@ public with sharing class ListShareActionController {
 	 * Revokes a previously generated token.
 	 *
 	 * @param listShareId
-	 * List_Share__c Id.
+	 * View_Share_Config__c Id.
 	 *
 	 * @return
 	 * TRUE if revocation succeeded.
@@ -66,7 +67,7 @@ public with sharing class ListShareActionController {
 
 		try {
 			Database.update(
-				new List_Share__c(Id = listShareId, Revoked__c = true),
+				new View_Share_Config__c(Id = listShareId, Revoked__c = true),
 				AccessLevel.USER_MODE
 			);
 			return true;
@@ -75,7 +76,7 @@ public with sharing class ListShareActionController {
 		}
 	}
 
-	private static void validateInput(List_Share__c listShare) {
+	private static void validateInput(View_Share_Config__c listShare) {
 		if (listShare == null) {
 			throw new AuraHandledException('Share record is required.');
 		}
@@ -85,7 +86,7 @@ public with sharing class ListShareActionController {
 		}
 	}
 
-	private static String generateEncryptedToken(List_Share__c listShare) {
+	private static String generateEncryptedToken(View_Share_Config__c listShare) {
 		Long expiryMs = 0;
 		if (listShare.Expires_At__c != null) {
 			expiryMs = listShare.Expires_At__c.getTime();
@@ -118,7 +119,7 @@ public with sharing class ListShareActionController {
 
 	private static void persistToken(Id listShareId, String token, String url) {
 		Database.update(
-			new List_Share__c(
+			new View_Share_Config__c(
 				Id = listShareId,
 				Token__c = token,
 				Tokenized_URL__c = url,
@@ -128,7 +129,10 @@ public with sharing class ListShareActionController {
 		);
 	}
 
-	private static void enqueueNotifications(List_Share__c listShare, String shareUrl) {
+	private static void enqueueNotifications(
+		View_Share_Config__c listShare,
+		String shareUrl
+	) {
 		String payload = JSON.serialize(
 			new Map<String, Object>{
 				'ShareLink' => shareUrl,
@@ -157,7 +161,7 @@ public with sharing class ListShareActionController {
 	}
 
 	private static Notification_Request__c buildNotification(
-		List_Share__c listShare,
+		View_Share_Config__c listShare,
 		String templateKey,
 		String channel,
 		String payload
@@ -171,26 +175,6 @@ public with sharing class ListShareActionController {
 			Status__c = 'Pending',
 			Context_Record_Id__c = listShare.Id
 		);
-	}
-
-	private static List_Share__c fetchListShare(Id listShareId) {
-		return [
-			SELECT
-				Id,
-				Token__c,
-				Tokenized_URL__c,
-				Revoked__c,
-				Sharing_Type__c,
-				Expires_At__c,
-				List__c,
-				Shared_With__c,
-				Token_Type__c,
-				Access_Type__c
-			FROM List_Share__c
-			WHERE Id = :listShareId
-			WITH USER_MODE
-			LIMIT 1
-		];
 	}
 
 	private static String getEncryptionKey() {

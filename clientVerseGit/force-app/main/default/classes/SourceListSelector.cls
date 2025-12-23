@@ -155,10 +155,6 @@ public with sharing class SourceListSelector extends fflib_SObjectSelector {
 		return results;
 	}
 
-	/* =========================
-       Helper Methods
-       ========================= */
-
 	/**
 	 * @description
 	 * Configures base query settings.

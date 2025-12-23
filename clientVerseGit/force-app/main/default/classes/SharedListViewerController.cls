@@ -50,26 +50,14 @@ public with sharing class SharedListViewerController {
 		}
 
 		// find list share by token
-		List<List_Share__c> shares = [
-			SELECT
-				Id,
-				List__c,
-				Token__c,
-				Tokenized_URL__c,
-				Revoked__c,
-				Sharing_Type__c,
-				Expires_At__c,
-				Access_Type__c
-			FROM List_Share__c
-			WHERE Token__c = :token
-			LIMIT 1
-		];
+		List<View_Share_Config__c> shares = new ViewShareConfigSelector()
+			.selectListSharesByTokens(new List<String>{ token });
 
 		if (shares.isEmpty()) {
 			throw new AuraHandledException('Invalid token');
 		}
 
-		List_Share__c share = shares[0];
+		View_Share_Config__c share = shares[0];
 
 		if (share.Revoked__c == true) {
 			throw new AuraHandledException('This link has been revoked.');
@@ -164,11 +152,11 @@ public with sharing class SharedListViewerController {
 		try {
 			// If a shareId is provided, validate the share and get Access_Type__c
 			String accessLabel = null;
-			List_Share__c share;
+			View_Share_Config__c share;
 			if (shareId != null) {
-				List<List_Share__c> shares = [
+				List<View_Share_Config__c> shares = [
 					SELECT Id, Revoked__c, Expires_At__c, Access_Type__c, CreatedById
-					FROM List_Share__c
+					FROM View_Share_Config__c
 					WHERE Id = :shareId
 					LIMIT 1
 				];
@@ -303,7 +291,7 @@ public with sharing class SharedListViewerController {
 				List_Change__c lc = new List_Change__c();
 				lc.List__c = listId;
 				if (shareId != null)
-					lc.List_Share__c = shareId;
+					lc.View_Share_Config__c = shareId;
 				lc.Changes__c = changesJson;
 				lc.Proposed_By__c = UserInfo.getUserId();
 				lc.Proposed_At__c = System.now();
