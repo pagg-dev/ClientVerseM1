@@ -31,7 +31,8 @@ public with sharing class ViewShareConfigSelector extends fflib_SObjectSelector 
 			View_Share_Config__c.Shared_With__c,
 			View_Share_Config__c.Token_Type__c,
 			View_Share_Config__c.Access_Type__c,
-			View_Share_Config__c.Type__c
+			View_Share_Config__c.Type__c,
+			View_Share_Config__c.CreatedById
 		};
 	}
 

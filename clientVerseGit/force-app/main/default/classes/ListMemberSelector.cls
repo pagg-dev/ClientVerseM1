@@ -212,6 +212,37 @@ public with sharing class ListMemberSelector extends fflib_SObjectSelector {
 
 	/**
 	 * @description
+	 * Selects list members for a single list, ordered by Contact name (NULLS LAST).
+	 *
+	 * @param listId
+	 * List__c Id.
+	 *
+	 * @return
+	 * Ordered List_Member__c records.
+	 */
+	public List<List_Member__c> selectByListOrderedByContactName(Id listId) {
+		if (listId == null) {
+			return new List<List_Member__c>();
+		}
+
+		return [
+			SELECT
+				Id,
+				Contact__c,
+				Contact__r.Name,
+				Status__c,
+				Title__c,
+				Company__c,
+				Initial_Sponsor__r.Name
+			FROM List_Member__c
+			WHERE List__c = :listId
+			WITH USER_MODE
+			ORDER BY Contact__r.Name NULLS LAST
+		];
+	}
+
+	/**
+	 * @description
 	 * Returns member counts grouped by List__c.
 	 *
 	 * @param listIds

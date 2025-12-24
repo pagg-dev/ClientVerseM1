@@ -104,10 +104,16 @@ public with sharing class ListShareActionController {
 	}
 
 	private static String buildShareUrl(String token) {
+		Key_Vault__mdt key = Key_Vault__mdt.getInstance('Community_Site_Name');
+
+		if (key == null || String.isBlank(key.Value__c)) {
+			throw new AuraHandledException('Experience Mapping is not configured.');
+		}
+
 		Network community = [
 			SELECT Id
 			FROM Network
-			WHERE Name = 'CV Marketing'
+			WHERE Name = :key.Value__c
 			WITH USER_MODE
 			LIMIT 1
 		];

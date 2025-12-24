@@ -22,7 +22,8 @@ public with sharing class ListSelector extends fflib_SObjectSelector {
 	public List<Schema.SObjectField> getSObjectFieldList() {
 		return new List<Schema.SObjectField>{
 			List__c.Id,
-			List__c.List_Member_Mapping__c
+			List__c.List_Member_Mapping__c,
+			List__c.Name
 		};
 	}
 
