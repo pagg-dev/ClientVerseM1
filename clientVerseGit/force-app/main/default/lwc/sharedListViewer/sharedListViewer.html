@@ -1,0 +1,185 @@
+<template>
+    <div class="slds-p-around_large">
+
+        <!-- HEADER -->
+        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small">
+            <div>
+                <h1 class="slds-text-heading_large slds-m-bottom_x-small">{listName}</h1>
+                <lightning-formatted-text value={access}></lightning-formatted-text>
+            </div>
+
+            <div class="button-row">
+                <lightning-button label="Add New Members" icon-name="utility:add" icon-position="left" variant="brand"
+                    onclick={openAddModal} disabled={canAddMemberButtonDisabled}>
+                </lightning-button>
+            </div>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="slds-m-bottom_small">
+            <lightning-input type="search" label="Search" variant="label-hidden" placeholder="Search members..."
+                value={searchTerm} onchange={handleSearchChange}>
+            </lightning-input>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-container slds-box slds-p-around_x-small">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
+                <thead>
+                    <tr class="slds-text-title_caps slds-text-align_center">
+                        <th class="col-name slds-text-align_left">
+                            <div class="slds-p-vertical_medium">Name</div>
+                        </th>
+                        <th class="col-title slds-text-align_left">
+                            <div class="slds-p-vertical_medium">Title</div>
+                        </th>
+                        <th class="col-company slds-text-align_left">
+                            <div class="slds-p-vertical_medium">Company</div>
+                        </th>
+                        <th class="col-sponsor slds-text-align_left">
+                            <div class="slds-p-vertical_medium">Initial Sponsor</div>
+                        </th>
+                        <th class="col-status slds-text-align_left">
+                            <div class="slds-p-vertical_medium">Status</div>
+                        </th>
+                        <th class="col-note slds-text-align_left">
+                            <div class="slds-p-vertical_medium">Notes</div>
+                        </th>
+                        <th class="col-actions slds-text-align_center">
+                            <div class="slds-p-vertical_medium">Actions</div>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template if:true={noRows}>
+                        <tr>
+                            <td colspan="4" class="slds-text-align_center slds-p-vertical_medium">
+                                No members found
+                            </td>
+                        </tr>
+                    </template>
+
+                    <template for:each={filteredMembers} for:item="m">
+                        <tr key={m.id}>
+
+                            <!-- NAME -->
+                            <td>
+                                <div class="slds-grid slds-grid_vertical-align-center slds-text-align_left">
+                                    <div class="slds-truncate" title={m.displayName}>
+                                        <span class={m.nameClass}>{m.displayName}</span>
+                                        <template if:true={m.isNew}>
+                                            <span class="slds-m-left_medium pill new">New</span>
+                                        </template>
+                                        <template if:true={m.markedForRemoval}>
+                                            <span class="slds-m-left_medium pill removed">To Remove</span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="slds-text-align_left wrap-text">{m.title}</td>
+                            <td class="slds-text-align_left wrap-text">{m.company}</td>
+                            <td class="slds-text-align_left wrap-text">{m.initialSponsor}</td>
+                            <td class="slds-text-align_left wrap-text">{m.status}</td>
+
+                            <!-- NOTES -->
+                            <td>
+                                <div class="note-wrapper">
+                                    <textarea class="note-input slds-textarea" data-rowid={m.id} data-field="note"
+                                        placeholder="Add a note" onchange={handleNoteChange}
+                                        readonly={editNotesInputDisabled}>{m.note}</textarea>
+
+                                    <template if:true={m.markedForRemoval}>
+                                        <div class="reason-wrapper">
+                                            <input class="reason-input slds-input" type="text"
+                                                placeholder="Reason for removal" value={m.reason} data-rowid={m.id}
+                                                data-field="reason" onchange={handleReasonChange}
+                                                readonly={editNotesInputDisabled} />
+                                        </div>
+                                    </template>
+                                </div>
+                            </td>
+
+                            <!-- ACTIONS -->
+                            <td class="actions-cell">
+                                <template if:true={m.markedForRemoval}>
+                                    <template if:true={canRemove}>
+                                        <lightning-button-icon icon-name="utility:undo" alternative-text="Undo"
+                                            title="Undo" data-rowid={m.id} onclick={handleUndoClick} variant="bare"
+                                            size="large"></lightning-button-icon>
+                                    </template>
+                                </template>
+
+                                <template if:false={m.markedForRemoval}>
+                                    <template if:true={m.isNew}>
+                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Delete"
+                                            title="Delete" data-rowid={m.id} onclick={handleDeleteNewClick}
+                                            variant="bare" size="large" disabled={isReadOnly}></lightning-button-icon>
+                                    </template>
+
+                                    <template if:false={m.isNew}>
+                                        <lightning-button-icon icon-name="utility:delete" alternative-text="Remove"
+                                            title="Mark for removal" data-rowid={m.id} onclick={handleMarkRemoveClick}
+                                            variant="bare" size="large"
+                                            disabled={removeMembersDisabled}></lightning-button-icon>
+                                    </template>
+                                </template>
+                            </td>
+
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="slds-m-top_medium slds-grid slds-grid_align-end slds-gutters">
+            <div class="slds-col">
+                <lightning-button label="Cancel" onclick={cancelChanges} disabled={isSubmitting}>
+                </lightning-button>
+            </div>
+
+            <div class="slds-col">
+                <lightning-button label="Submit Changes" variant="brand" onclick={submitChanges}
+                    disabled={canSubmitButtonDisabled}>
+                </lightning-button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD MEMBER MODAL -->
+    <template if:true={addModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-modal_large slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <header class="slds-modal__header slds-modal__header_empty">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={closeAddModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="Close" variant="inverse"
+                            size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-text-heading_large slds-hyphenate slds-m-top_medium">Add Members</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <c-list-builder-wrapper-component record-id={listId} object-api-name="List__c"
+                        config-id="light-mode" light-mode="true" onselectionchange={handleAddMembers}>
+                    </c-list-builder-wrapper-component>
+                </div>
+
+                <!-- Modal footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={closeAddModal}></lightning-button>
+
+                    <lightning-button label="Add Members" variant="brand" class="slds-m-left_small"
+                        onclick={confirmAddSelected} disabled={addMembersButtonDisabled}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

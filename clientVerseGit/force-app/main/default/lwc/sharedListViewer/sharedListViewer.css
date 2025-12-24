@@ -1,0 +1,88 @@
+/* container spacing */
+.table-container {
+    max-height: 560px;
+    overflow-y: auto;
+    border-radius: 0.25rem;
+}
+
+/* name style base */
+.name {
+    font-weight: 600;
+}
+
+/* name variants */
+.name-added {
+    color: #0c8756;
+}
+
+.name-removed {
+    color: #d92727;
+    text-decoration: line-through;
+    opacity: 0.9;
+}
+
+/* pill */
+.pill.new {
+    background: #e6f7ff;
+    color: #0176d3;
+    padding: 0.12rem 0.4rem;
+    font-size: 0.65rem;
+    border-radius: 12px;
+}
+
+.pill.removed {
+    background: #ffeaea;
+    color: #ba1b1b;      
+    padding: 0.12rem 0.4rem;
+    font-size: 0.65rem;
+    border-radius: 12px;
+}
+
+
+/* note + reason layout */
+.note-wrapper {
+    display: block;
+}
+
+.note-input {
+    width: 100%;
+    min-height: 60px;
+    resize: vertical;
+}
+
+.reason-wrapper {
+    margin-top: 0.5rem;
+}
+
+.reason-input {
+    width: 100%;
+}
+
+/* actions column centering */
+.actions-cell {
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* column widths */
+.col-name { width: 16%; }
+.col-title { width: 17%; }
+.col-company { width: 16%; }
+.col-sponsor { width: 15%; }
+.col-status { width: 9%; }
+.col-note { width: 20%; }
+.col-actions { width: 7%; }
+
+
+.button-row lightning-button {
+    margin-left: 0.5rem;
+}
+
+.slds-text-title_caps{
+    font-size: 14px;
+}
+
+.wrap-text {
+    white-space: normal;
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Initial_Sponsor__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>The first firm contact who sponsored the addition of this individual as a list member.</description>
+    <label>Initial Sponsor</label>
+    <referenceTo>Contact</referenceTo>
+    <relationshipLabel>Sponsored List Members</relationshipLabel>
+    <relationshipName>Sponsored_List_Members</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

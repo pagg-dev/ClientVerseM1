@@ -1,0 +1,140 @@
+<template>
+    <section class="wrapper slds-p-around_medium">
+
+        <!-- Header -->
+        <div class="header">
+            <h1 class="slds-text-heading_large">Share List</h1>
+            <p class="slds-text-body_small subtext">
+                Create a secure tokenized link
+            </p>
+        </div>
+
+        <div class="form slds-p-vertical_medium slds-p-horizontal_x-large">
+
+            <!-- SHARE AS -->
+            <div class="row slds-grid slds-p-vertical_x-small">
+                <div class="label slds-col slds-size_1-of-5">
+                    <label class="slds-form-element__label">Sharing Mode</label>
+                </div>
+                <div class="input slds-col slds-size_4-of-5">
+                    <lightning-radio-group name="shareMode" options={shareModeOptions} value={shareMode} type="button"
+                        onchange={handleShareModeChange} disabled={disableInputs}>
+                    </lightning-radio-group>
+                </div>
+            </div>
+
+            <!-- SHARE WITH USER -->
+            <template if:true={showAuthLookup}>
+                <div class="row slds-grid slds-p-vertical_x-small">
+                    <div class="label slds-col slds-size_1-of-5">
+                        <label class="slds-form-element__label">Share With (User)</label>
+                    </div>
+
+                    <div class="input slds-col slds-size_4-of-5">
+                        <lightning-record-picker label="User" placeholder="Search users..." object-api-name="User"
+                            value={selectedUserId} onchange={handleRecordPickerChange} size="large"
+                            icon-name="standard:user" matching-fields='["Name","Email"]'
+                            display-fields='["Name","Email"]' variant="label-hidden" disabled={disableInputs}>
+                        </lightning-record-picker>
+
+                    </div>
+                </div>
+            </template>
+
+            <!-- ACCESS TYPE -->
+            <div class="row slds-grid slds-p-vertical_x-small">
+                <div class="label slds-col slds-size_1-of-5">
+                    <label class="slds-form-element__label slds-m-top_small">Access Type</label>
+                </div>
+                <div class="input slds-col slds-size_4-of-5">
+                    <lightning-combobox options={accessTypeOptions} value={accessType}
+                        onchange={handleAccessTypeChange} disabled={disableInputs}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <!-- EXPIRY -->
+            <div class="row slds-grid slds-p-vertical_x-small">
+                <div class="label slds-col slds-size_1-of-5">
+                    <label class="slds-form-element__label slds-m-top_small">Expiry</label>
+                </div>
+                <div class="input slds-col slds-size_4-of-5">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input type="date" value={expiryDate} onchange={handleExpiryDateChange} disabled={disableInputs}>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input type="time" value={expiryTime} onchange={handleExpiryTimeChange} disabled={disableInputs}>
+                            </lightning-input>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOKEN TYPE -->
+            <div class="row slds-grid slds-p-vertical_x-small">
+                <div class="label slds-col slds-size_1-of-5">
+                    <label class="slds-form-element__label">Token type</label>
+                </div>
+                <div class="input slds-col slds-size_4-of-5">
+                    <lightning-radio-group name="tokenType" options={tokenTypeOptions} value={tokenType}
+                        onchange={handleTokenTypeChange} disabled={disableInputs}>
+                    </lightning-radio-group>
+                </div>
+            </div>
+
+            <!-- MAX USES (when Multi-use) -->
+            <template if:true={isMultiUse}>
+                <div class="row slds-grid slds-p-vertical_x-small">
+                    <div class="label slds-col slds-size_1-of-5">
+                        <label class="slds-form-element__label">Max uses</label>
+                    </div>
+                    <div class="input slds-col slds-size_4-of-5">
+                        <lightning-input type="number" min="1" value={maxUses} onchange={handleMaxUsesChange} disabled={disableInputs}>
+                        </lightning-input>
+                    </div>
+                </div>
+            </template>
+
+            <!-- GENERATED LINK -->
+            <template if:true={generatedUrl}>
+                <div class="row slds-grid slds-p-vertical_x-small">
+                    <div class="label slds-col slds-size_1-of-5">
+                        <label class="slds-form-element__label">Generated Link</label>
+                    </div>
+
+                    <div class="input slds-col slds-size_4-of-5">
+                        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center url-row">
+
+                            <div class="url-text" title={generatedUrl}>{generatedUrlShort}</div>
+
+                            <div class="url-actions">
+                                <lightning-button label="Copy" onclick={copyUrl}></lightning-button>
+                                <lightning-button class="slds-m-left_small" variant="destructive" label="Revoke"
+                                    onclick={revokeLink}>
+                                </lightning-button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+        </div>
+
+        <!-- FOOTER BAR -->
+        <div class="footer slds-p-top_small">
+            <div class="slds-grid slds-grid_align-end">
+                <lightning-button variant="neutral" label="Close" onclick={handleClose} class="slds-m-right_small">
+                </lightning-button>
+
+                <template if:false={generatedUrl}>
+                    <lightning-button variant="brand" label="Generate Link" onclick={handleGenerate}>
+                    </lightning-button>
+                </template>
+            </div>
+        </div>
+
+    </section>
+</template>
