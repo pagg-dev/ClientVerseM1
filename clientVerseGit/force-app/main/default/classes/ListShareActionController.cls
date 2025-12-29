@@ -163,6 +163,16 @@ public with sharing class ListShareActionController {
 			buildNotification(listShare, inAppTemplateKey, 'In App', payload)
 		};
 
+		Task activity = new Task(
+			Subject = 'List Shared',
+			WhatId = listShare.List__c,
+			ActivityDate = System.today(),
+			OwnerId = UserInfo.getUserId(),
+			Status = 'Completed'
+		);
+
+		Database.insert(activity, AccessLevel.USER_MODE);
+
 		Database.insert(requests, AccessLevel.USER_MODE);
 	}
 

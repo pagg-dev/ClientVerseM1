@@ -136,6 +136,16 @@ public with sharing class SharedListViewerController {
 		if (!deletes.isEmpty()) {
 			Database.delete(deletes, AccessLevel.USER_MODE);
 		}
+
+		Task activity = new Task(
+			Subject = 'List Changed By Approved Reviewer',
+			WhatId = listId,
+			ActivityDate = System.today(),
+			OwnerId = UserInfo.getUserId(),
+			Status = 'Completed'
+		);
+
+		Database.insert(activity, AccessLevel.USER_MODE);
 	}
 
 	private class ChangePayload {
@@ -283,6 +293,16 @@ public with sharing class SharedListViewerController {
 		Database.insert(change, AccessLevel.USER_MODE);
 
 		Database.insert(buildNotification(change, listId, share), AccessLevel.USER_MODE);
+
+		Task activity = new Task(
+			Subject = 'List Change Proposal Submitted',
+			WhatId = listId,
+			ActivityDate = System.today(),
+			OwnerId = UserInfo.getUserId(),
+			Status = 'Completed'
+		);
+
+		Database.insert(activity, AccessLevel.USER_MODE);
 	}
 
 	private static Notification_Request__c buildNotification(
