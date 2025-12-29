@@ -6,6 +6,46 @@
 public with sharing class ListMemberService implements IListMemberService {
 	/**
 	 * @description
+	 * Context object holding all data required to evaluate and apply
+	 * member removal rules during source list unmapping.
+	 */
+	private class RemovalContext {
+		/**
+		 * @description
+		 * Removal snapshots representing source list unmapping
+		 * and the target destination members.
+		 */
+		public List<Snapshot> snapshots;
+
+		/**
+		 * @description
+		 * Existing List_Member__c records grouped by destination List Id.
+		 */
+		public Map<Id, List<List_Member__c>> listMembers;
+
+		/**
+		 * @description
+		 * Existing CampaignMember records grouped by destination Campaign Id.
+		 */
+		public Map<Id, List<CampaignMember>> campaignMembers;
+
+		/**
+		 * @description
+		 * Destination members that require Source_Lists__c updates
+		 * after source list removal.
+		 */
+		public List<SObject> membersToUpdate = new List<SObject>();
+
+		/**
+		 * @description
+		 * Destination members that should be deleted after
+		 * evaluating source list attribution.
+		 */
+		public List<SObject> membersToDelete = new List<SObject>();
+	}
+
+	/**
+	 * @description
 	 * Enqueues asynchronous copy of members for mappings.
 	 *
 	 * @param mappingIds
@@ -43,6 +83,7 @@ public with sharing class ListMemberService implements IListMemberService {
 	 * Snapshot of removal targets for async processing.
 	 */
 	public class Snapshot {
+		public Id sourceListId;
 		public Id destListId;
 		public Id destCampaignId;
 		public List<Id> contactIds;
@@ -72,6 +113,7 @@ public with sharing class ListMemberService implements IListMemberService {
 			}
 
 			Snapshot snapshot = new Snapshot();
+			snapshot.sourceListId = mapping.Source_List__c;
 			snapshot.destListId = mapping.Destination_List__c;
 			snapshot.destCampaignId = mapping.Destination_Campaign__c;
 			snapshot.contactIds = new List<Id>(contacts);
@@ -166,13 +208,13 @@ public with sharing class ListMemberService implements IListMemberService {
 				allContactIds
 			);
 
-			List<SObject> deleteBatch = buildDeleteBatch(
-				snapshots,
-				listMembers,
-				campaignMembers
-			);
+			RemovalContext removalctx = new RemovalContext();
+			removalctx.snapshots = snapshots;
+			removalctx.listMembers = listMembers;
+			removalctx.campaignMembers = campaignMembers;
 
-			commitDeletes(deleteBatch);
+			applyRemovalRules(removalctx);
+			commitChanges(removalctx.membersToUpdate, removalctx.membersToDelete);
 		}
 	}
 
@@ -263,76 +305,84 @@ public with sharing class ListMemberService implements IListMemberService {
 		return result;
 	}
 
-	private static List<SObject> buildDeleteBatch(
-		List<Snapshot> snapshots,
-		Map<Id, List<List_Member__c>> listMembers,
-		Map<Id, List<CampaignMember>> campaignMembers
-	) {
-		List<SObject> deletes = new List<SObject>();
-
-		for (Snapshot snapshot : snapshots) {
+	/**
+	 * @description
+	 * Applies source list removal rules to destination List and
+	 * Campaign members using CSV-based source attribution.
+	 *
+	 * @param ctx
+	 * Removal context containing snapshots, queried members,
+	 * and mutation collections.
+	 */
+	private static void applyRemovalRules(RemovalContext ctx) {
+		for (Snapshot snapshot : ctx.snapshots) {
 			if (snapshot.contactIds == null || snapshot.contactIds.isEmpty()) {
 				continue;
 			}
 
-			Set<Id> toRemove = new Set<Id>(snapshot.contactIds);
+			Set<Id> targets = new Set<Id>(snapshot.contactIds);
 
+			// ---- LIST MEMBERS ----
 			if (
 				snapshot.destListId != null &&
-				listMembers.containsKey(snapshot.destListId)
+				ctx.listMembers.containsKey(snapshot.destListId)
 			) {
-				for (List_Member__c lm : listMembers.get(snapshot.destListId)) {
-					if (toRemove.contains(lm.Contact__c)) {
-						deletes.add(lm);
+				for (List_Member__c lm : ctx.listMembers.get(snapshot.destListId)) {
+					if (!targets.contains(lm.Contact__c)) {
+						continue;
+					}
+
+					String csv = lm.Source_Lists__c;
+
+					if (ListUtil.csvContains(csv, snapshot.sourceListId)) {
+						csv = ListUtil.csvRemove(csv, snapshot.sourceListId);
+					}
+
+					if (String.isBlank(csv)) {
+						ctx.membersToDelete.add(lm);
+					} else {
+						lm.Source_Lists__c = csv;
+						ctx.membersToUpdate.add(lm);
 					}
 				}
 			}
 
+			// ---- CAMPAIGN MEMBERS ----
 			if (
 				snapshot.destCampaignId != null &&
-				campaignMembers.containsKey(snapshot.destCampaignId)
+				ctx.campaignMembers.containsKey(snapshot.destCampaignId)
 			) {
-				for (CampaignMember cm : campaignMembers.get(snapshot.destCampaignId)) {
-					if (toRemove.contains(cm.ContactId)) {
-						deletes.add(cm);
+				for (
+					CampaignMember cm : ctx.campaignMembers.get(snapshot.destCampaignId)
+				) {
+					if (targets.contains(cm.ContactId)) {
+						ctx.membersToDelete.add(cm);
 					}
 				}
 			}
 		}
-
-		return deletes;
 	}
 
-	private static void commitDeletes(List<SObject> deleteBatch) {
-		if (deleteBatch == null || deleteBatch.isEmpty()) {
+	private static void commitChanges(List<SObject> toUpdate, List<SObject> toDelete) {
+		if (toUpdate.isEmpty() && toDelete.isEmpty()) {
 			return;
 		}
 
-		final Integer chunkSize = 2000;
-		Integer index = 0;
-
-		while (index < deleteBatch.size()) {
-			Integer endIdx = Math.min(index + chunkSize, deleteBatch.size());
-
-			List<SObject> slice = (List<SObject>) ListUtil.sliceSObjects(
-				deleteBatch,
-				index,
-				endIdx
-			);
-
-			fflib_SObjectUnitOfWork uow = new fflib_SObjectUnitOfWork(
-				new List<Schema.SObjectType>{
-					List_Member__c.SObjectType,
-					CampaignMember.SObjectType
-				}
-			);
-
-			for (SObject record : slice) {
-				uow.registerDeleted(record);
+		fflib_SObjectUnitOfWork uow = new fflib_SObjectUnitOfWork(
+			new List<Schema.SObjectType>{
+				List_Member__c.SObjectType,
+				CampaignMember.SObjectType
 			}
+		);
 
-			uow.commitWork();
-			index = endIdx;
+		for (SObject r : toUpdate) {
+			uow.registerDirty(r);
 		}
+
+		for (SObject r : toDelete) {
+			uow.registerDeleted(r);
+		}
+
+		uow.commitWork();
 	}
 }

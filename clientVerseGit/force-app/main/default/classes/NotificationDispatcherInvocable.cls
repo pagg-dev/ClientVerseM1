@@ -82,6 +82,18 @@ public with sharing class NotificationDispatcherInvocable {
 				result.success = true;
 			} catch (Exception ex) {
 				result.errorMessage = ex.getMessage();
+
+				LogService.logError(
+					'Notification Dispatch',
+					ex,
+					new Map<String, Object>{
+						'requestId' => requestId,
+						'channel' => requestMap.get(requestId).Channel__c,
+						'contextRecordId' => requestMap.get(requestId)
+							.Context_Record_Id__c,
+						'recipientId' => requestMap.get(requestId).Recipient_Id__c
+					}
+				);
 			}
 
 			results.add(result);
