@@ -113,6 +113,7 @@ public with sharing class CampaignMembersCopyBatch implements Database.Batchable
 	 * @param bc
 	 * Batch context.
 	 */
+	@SuppressWarnings('PMD.EmptyStatementBlock')
 	public void finish(Database.BatchableContext bc) {
 		// No post-processing required
 	}
@@ -256,6 +257,14 @@ public with sharing class CampaignMembersCopyBatch implements Database.Batchable
 			uow.registerDirty(record);
 		}
 
-		uow.commitWork();
+		try {
+			uow.commitWork();
+		} catch (Exception e) {
+			LogService.logError(
+				'Campaign Member Copy Batch',
+				e,
+				new Map<String, Object>{ 'inserts' => inserts, 'updates' => updates }
+			);
+		}
 	}
 }

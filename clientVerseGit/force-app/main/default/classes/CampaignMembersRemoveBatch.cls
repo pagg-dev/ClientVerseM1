@@ -246,6 +246,14 @@ public with sharing class CampaignMembersRemoveBatch implements Database.Batchab
 			uow.registerDeleted(record);
 		}
 
-		uow.commitWork();
+		try {
+			uow.commitWork();
+		} catch (Exception e) {
+			LogService.logError(
+				'Campaign Member Remove Batch',
+				e,
+				new Map<String, Object>{ 'deletes' => deletes, 'updates' => updates }
+			);
+		}
 	}
 }

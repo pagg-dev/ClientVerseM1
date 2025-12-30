@@ -252,6 +252,14 @@ public with sharing class ListMembersRemoveBatch implements Database.Batchable<S
 			uow.registerDeleted(record);
 		}
 
-		uow.commitWork();
+		try {
+			uow.commitWork();
+		} catch (Exception e) {
+			LogService.logError(
+				'List Member Remove Batch',
+				e,
+				new Map<String, Object>{ 'deletes' => toDelete, 'updates' => toUpdate }
+			);
+		}
 	}
 }

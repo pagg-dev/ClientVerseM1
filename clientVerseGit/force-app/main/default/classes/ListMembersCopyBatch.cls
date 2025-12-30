@@ -245,6 +245,14 @@ public with sharing class ListMembersCopyBatch implements Database.Batchable<SOb
 			uow.registerDirty(record);
 		}
 
-		uow.commitWork();
+		try {
+			uow.commitWork();
+		} catch (Exception e) {
+			LogService.logError(
+				'List Member Copy Batch',
+				e,
+				new Map<String, Object>{ 'inserts' => inserts, 'updates' => updates }
+			);
+		}
 	}
 }
