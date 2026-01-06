@@ -217,6 +217,7 @@ public with sharing class LogService {
 	 * @return
 	 * Notification_Event__e platform event.
 	 */
+	@TestVisible
 	private static Notification_Event__e toPlatformEvent(LogEntry entry) {
 		Notification_Event__e evt = new Notification_Event__e();
 
